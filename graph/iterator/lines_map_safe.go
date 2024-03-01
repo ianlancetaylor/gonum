@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build safe
-// +build safe
-
 package iterator
 
 import (
@@ -17,7 +14,8 @@ import (
 // The iteration order of Lines is randomized.
 type Lines struct {
 	lines reflect.Value
-	iter  *reflect.MapIter
+	iter  reflect.MapIter
+	value reflect.Value // avoids allocation during iteration
 	pos   int
 	curr  graph.Line
 }
@@ -30,7 +28,10 @@ type Lines struct {
 // the call to NewLines.
 func NewLines(lines map[int64]graph.Line) *Lines {
 	rv := reflect.ValueOf(lines)
-	return &Lines{lines: rv, iter: rv.MapRange()}
+	var space graph.Line
+	ret := &Lines{lines: rv, value: reflect.ValueOf(&space).Elem()}
+	ret.iter.Reset(rv)
+	return ret
 }
 
 // Len returns the remaining number of lines to be iterated over.
@@ -46,7 +47,8 @@ func (l *Lines) Next() bool {
 	ok := l.iter.Next()
 	if ok {
 		l.pos++
-		l.curr = l.iter.Value().Interface().(graph.Line)
+		l.value.SetIterValue(&l.iter)
+		l.curr = l.value.Interface().(graph.Line)
 	}
 	return ok
 }
@@ -61,7 +63,7 @@ func (l *Lines) Line() graph.Line {
 func (l *Lines) Reset() {
 	l.curr = nil
 	l.pos = 0
-	l.iter = l.lines.MapRange()
+	l.iter.Reset(l.lines)
 }
 
 // LineSlice returns all the remaining lines in the iterator and advances
@@ -73,7 +75,8 @@ func (l *Lines) LineSlice() []graph.Line {
 	}
 	lines := make([]graph.Line, 0, l.Len())
 	for l.iter.Next() {
-		lines = append(lines, l.iter.Value().Interface().(graph.Line))
+		l.value.SetIterValue(&l.iter)
+		lines = append(lines, l.value.Interface().(graph.Line))
 	}
 	l.pos = l.lines.Len()
 	return lines
@@ -83,7 +86,8 @@ func (l *Lines) LineSlice() []graph.Line {
 // The iteration order of WeightedLines is randomized.
 type WeightedLines struct {
 	lines reflect.Value
-	iter  *reflect.MapIter
+	iter  reflect.MapIter
+	value reflect.Value // avoids allocation during iteration
 	pos   int
 	curr  graph.WeightedLine
 }
@@ -96,7 +100,10 @@ type WeightedLines struct {
 // the call to NewWeightedLines.
 func NewWeightedLines(lines map[int64]graph.WeightedLine) *WeightedLines {
 	rv := reflect.ValueOf(lines)
-	return &WeightedLines{lines: rv, iter: rv.MapRange()}
+	var space graph.WeightedLine
+	ret := &WeightedLines{lines: rv, value: reflect.ValueOf(&space).Elem()}
+	ret.iter.Reset(rv)
+	return ret
 }
 
 // Len returns the remaining number of lines to be iterated over.
@@ -112,7 +119,8 @@ func (l *WeightedLines) Next() bool {
 	ok := l.iter.Next()
 	if ok {
 		l.pos++
-		l.curr = l.iter.Value().Interface().(graph.WeightedLine)
+		l.value.SetIterValue(&l.iter)
+		l.curr = l.value.Interface().(graph.WeightedLine)
 	}
 	return ok
 }
@@ -127,7 +135,7 @@ func (l *WeightedLines) WeightedLine() graph.WeightedLine {
 func (l *WeightedLines) Reset() {
 	l.curr = nil
 	l.pos = 0
-	l.iter = l.lines.MapRange()
+	l.iter.Reset(l.lines)
 }
 
 // WeightedLineSlice returns all the remaining lines in the iterator and advances
@@ -139,7 +147,8 @@ func (l *WeightedLines) WeightedLineSlice() []graph.WeightedLine {
 	}
 	lines := make([]graph.WeightedLine, 0, l.Len())
 	for l.iter.Next() {
-		lines = append(lines, l.iter.Value().Interface().(graph.WeightedLine))
+		l.value.SetIterValue(&l.iter)
+		lines = append(lines, l.value.Interface().(graph.WeightedLine))
 	}
 	l.pos = l.lines.Len()
 	return lines
