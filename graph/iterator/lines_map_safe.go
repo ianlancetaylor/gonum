@@ -14,10 +14,10 @@ import (
 // The iteration order of Lines is randomized.
 type Lines struct {
 	lines reflect.Value
-	iter  reflect.MapIter
-	value reflect.Value // avoids allocation during iteration
 	pos   int
 	curr  graph.Line
+	value reflect.Value
+	iter  reflect.MapIter
 }
 
 // NewLines returns a Lines initialized with the provided lines, a
@@ -28,9 +28,9 @@ type Lines struct {
 // the call to NewLines.
 func NewLines(lines map[int64]graph.Line) *Lines {
 	rv := reflect.ValueOf(lines)
-	var space graph.Line
-	ret := &Lines{lines: rv, value: reflect.ValueOf(&space).Elem()}
+	ret := &Lines{lines: rv}
 	ret.iter.Reset(rv)
+	ret.value = reflect.ValueOf(&ret.curr).Elem()
 	return ret
 }
 
@@ -48,7 +48,6 @@ func (l *Lines) Next() bool {
 	if ok {
 		l.pos++
 		l.value.SetIterValue(&l.iter)
-		l.curr = l.value.Interface().(graph.Line)
 	}
 	return ok
 }
@@ -76,7 +75,7 @@ func (l *Lines) LineSlice() []graph.Line {
 	lines := make([]graph.Line, 0, l.Len())
 	for l.iter.Next() {
 		l.value.SetIterValue(&l.iter)
-		lines = append(lines, l.value.Interface().(graph.Line))
+		lines = append(lines, l.curr)
 	}
 	l.pos = l.lines.Len()
 	return lines
@@ -86,10 +85,10 @@ func (l *Lines) LineSlice() []graph.Line {
 // The iteration order of WeightedLines is randomized.
 type WeightedLines struct {
 	lines reflect.Value
-	iter  reflect.MapIter
-	value reflect.Value // avoids allocation during iteration
 	pos   int
 	curr  graph.WeightedLine
+	value reflect.Value
+	iter  reflect.MapIter
 }
 
 // NewWeightedLines returns a WeightedLines initialized with the provided lines, a
@@ -100,9 +99,9 @@ type WeightedLines struct {
 // the call to NewWeightedLines.
 func NewWeightedLines(lines map[int64]graph.WeightedLine) *WeightedLines {
 	rv := reflect.ValueOf(lines)
-	var space graph.WeightedLine
-	ret := &WeightedLines{lines: rv, value: reflect.ValueOf(&space).Elem()}
+	ret := &WeightedLines{lines: rv}
 	ret.iter.Reset(rv)
+	ret.value = reflect.ValueOf(&ret.curr).Elem()
 	return ret
 }
 
@@ -120,7 +119,6 @@ func (l *WeightedLines) Next() bool {
 	if ok {
 		l.pos++
 		l.value.SetIterValue(&l.iter)
-		l.curr = l.value.Interface().(graph.WeightedLine)
 	}
 	return ok
 }
@@ -148,7 +146,7 @@ func (l *WeightedLines) WeightedLineSlice() []graph.WeightedLine {
 	lines := make([]graph.WeightedLine, 0, l.Len())
 	for l.iter.Next() {
 		l.value.SetIterValue(&l.iter)
-		lines = append(lines, l.value.Interface().(graph.WeightedLine))
+		lines = append(lines, l.curr)
 	}
 	l.pos = l.lines.Len()
 	return lines
