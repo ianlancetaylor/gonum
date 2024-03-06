@@ -14,6 +14,7 @@ import (
 // The iteration order of Nodes is randomized.
 type Nodes struct {
 	nodes reflect.Value
+	nlen  int
 	pos   int
 	curr  graph.Node
 	value reflect.Value
@@ -28,7 +29,7 @@ type Nodes struct {
 // the call to NewNodes.
 func NewNodes(nodes map[int64]graph.Node) *Nodes {
 	rv := reflect.ValueOf(nodes)
-	ret := &Nodes{nodes: rv}
+	ret := &Nodes{nodes: rv, nlen: len(nodes)}
 	ret.iter.Reset(rv)
 	ret.value = reflect.ValueOf(&ret.curr).Elem()
 	return ret
@@ -36,12 +37,12 @@ func NewNodes(nodes map[int64]graph.Node) *Nodes {
 
 // Len returns the remaining number of nodes to be iterated over.
 func (n *Nodes) Len() int {
-	return n.nodes.Len() - n.pos
+	return n.nlen - n.pos
 }
 
 // Next returns whether the next call of Node will return a valid node.
 func (n *Nodes) Next() bool {
-	if n.pos >= n.nodes.Len() {
+	if n.pos >= n.nlen {
 		return false
 	}
 	ok := n.iter.Next()
@@ -86,6 +87,7 @@ func (n *Nodes) NodeSlice() []graph.Node {
 type NodesByEdge struct {
 	nodes map[int64]graph.Node
 	edges reflect.Value
+	elen  int
 	pos   int
 	curr  graph.Node
 	key   int64
@@ -104,7 +106,7 @@ type NodesByEdge struct {
 // is mutated after the call to NewNodes.
 func NewNodesByEdge(nodes map[int64]graph.Node, edges map[int64]graph.Edge) *NodesByEdge {
 	rv := reflect.ValueOf(edges)
-	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret := &NodesByEdge{nodes: nodes, edges: rv, elen: len(edges)}
 	ret.iter.Reset(rv)
 	ret.keyv = reflect.ValueOf(&ret.key).Elem()
 	return ret
@@ -121,7 +123,7 @@ func NewNodesByEdge(nodes map[int64]graph.Node, edges map[int64]graph.Edge) *Nod
 // is mutated after the call to NewNodes.
 func NewNodesByWeightedEdge(nodes map[int64]graph.Node, edges map[int64]graph.WeightedEdge) *NodesByEdge {
 	rv := reflect.ValueOf(edges)
-	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret := &NodesByEdge{nodes: nodes, edges: rv, elen: len(edges)}
 	ret.iter.Reset(rv)
 	ret.keyv = reflect.ValueOf(&ret.key).Elem()
 	return ret
@@ -138,7 +140,7 @@ func NewNodesByWeightedEdge(nodes map[int64]graph.Node, edges map[int64]graph.We
 // is mutated after the call to NewNodes.
 func NewNodesByLines(nodes map[int64]graph.Node, lines map[int64]map[int64]graph.Line) *NodesByEdge {
 	rv := reflect.ValueOf(lines)
-	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret := &NodesByEdge{nodes: nodes, edges: rv, elen: len(lines)}
 	ret.iter.Reset(rv)
 	ret.keyv = reflect.ValueOf(&ret.key).Elem()
 	return ret
@@ -155,7 +157,7 @@ func NewNodesByLines(nodes map[int64]graph.Node, lines map[int64]map[int64]graph
 // is mutated after the call to NewNodes.
 func NewNodesByWeightedLines(nodes map[int64]graph.Node, lines map[int64]map[int64]graph.WeightedLine) *NodesByEdge {
 	rv := reflect.ValueOf(lines)
-	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret := &NodesByEdge{nodes: nodes, edges: rv, elen: len(lines)}
 	ret.iter.Reset(rv)
 	ret.keyv = reflect.ValueOf(&ret.key).Elem()
 	return ret
@@ -163,12 +165,12 @@ func NewNodesByWeightedLines(nodes map[int64]graph.Node, lines map[int64]map[int
 
 // Len returns the remaining number of nodes to be iterated over.
 func (n *NodesByEdge) Len() int {
-	return n.edges.Len() - n.pos
+	return n.elen - n.pos
 }
 
 // Next returns whether the next call of Node will return a valid node.
 func (n *NodesByEdge) Next() bool {
-	if n.pos >= n.edges.Len() {
+	if n.pos >= n.elen {
 		return false
 	}
 	ok := n.iter.Next()
