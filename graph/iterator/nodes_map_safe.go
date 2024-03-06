@@ -14,9 +14,10 @@ import (
 // The iteration order of Nodes is randomized.
 type Nodes struct {
 	nodes reflect.Value
-	iter  *reflect.MapIter
 	pos   int
 	curr  graph.Node
+	value reflect.Value
+	iter  reflect.MapIter
 }
 
 // NewNodes returns a Nodes initialized with the provided nodes, a
@@ -27,7 +28,10 @@ type Nodes struct {
 // the call to NewNodes.
 func NewNodes(nodes map[int64]graph.Node) *Nodes {
 	rv := reflect.ValueOf(nodes)
-	return &Nodes{nodes: rv, iter: rv.MapRange()}
+	ret := &Nodes{nodes: rv}
+	ret.iter.Reset(rv)
+	ret.value = reflect.ValueOf(&ret.curr).Elem()
+	return ret
 }
 
 // Len returns the remaining number of nodes to be iterated over.
@@ -43,7 +47,7 @@ func (n *Nodes) Next() bool {
 	ok := n.iter.Next()
 	if ok {
 		n.pos++
-		reflect.ValueOf(&n.curr).Elem().SetIterValue(n.iter)
+		n.value.SetIterValue(&n.iter)
 	}
 	return ok
 }
@@ -69,9 +73,8 @@ func (n *Nodes) NodeSlice() []graph.Node {
 		return nil
 	}
 	nodes := make([]graph.Node, 0, n.Len())
-	v := reflect.ValueOf(&n.curr).Elem()
 	for n.iter.Next() {
-		v.SetIterValue(n.iter)
+		n.value.SetIterValue(&n.iter)
 		nodes = append(nodes, n.curr)
 	}
 	n.pos = n.nodes.Len()
@@ -82,10 +85,12 @@ func (n *Nodes) NodeSlice() []graph.Node {
 // The iteration order of Nodes is randomized.
 type NodesByEdge struct {
 	nodes map[int64]graph.Node
-	iter  *reflect.MapIter
 	edges reflect.Value
 	pos   int
 	curr  graph.Node
+	key   int64
+	keyv  reflect.Value
+	iter  reflect.MapIter
 }
 
 // NewNodesByEdge returns a NodesByEdge initialized with the
@@ -99,7 +104,10 @@ type NodesByEdge struct {
 // is mutated after the call to NewNodes.
 func NewNodesByEdge(nodes map[int64]graph.Node, edges map[int64]graph.Edge) *NodesByEdge {
 	rv := reflect.ValueOf(edges)
-	return &NodesByEdge{nodes: nodes, edges: rv, iter: rv.MapRange()}
+	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret.iter.Reset(rv)
+	ret.keyv = reflect.ValueOf(&ret.key).Elem()
+	return ret
 }
 
 // NewNodesByWeightedEdge returns a NodesByEdge initialized with the
@@ -113,7 +121,10 @@ func NewNodesByEdge(nodes map[int64]graph.Node, edges map[int64]graph.Edge) *Nod
 // is mutated after the call to NewNodes.
 func NewNodesByWeightedEdge(nodes map[int64]graph.Node, edges map[int64]graph.WeightedEdge) *NodesByEdge {
 	rv := reflect.ValueOf(edges)
-	return &NodesByEdge{nodes: nodes, edges: rv, iter: rv.MapRange()}
+	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret.iter.Reset(rv)
+	ret.keyv = reflect.ValueOf(&ret.key).Elem()
+	return ret
 }
 
 // NewNodesByLines returns a NodesByEdge initialized with the
@@ -127,7 +138,10 @@ func NewNodesByWeightedEdge(nodes map[int64]graph.Node, edges map[int64]graph.We
 // is mutated after the call to NewNodes.
 func NewNodesByLines(nodes map[int64]graph.Node, lines map[int64]map[int64]graph.Line) *NodesByEdge {
 	rv := reflect.ValueOf(lines)
-	return &NodesByEdge{nodes: nodes, edges: rv, iter: rv.MapRange()}
+	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret.iter.Reset(rv)
+	ret.keyv = reflect.ValueOf(&ret.key).Elem()
+	return ret
 }
 
 // NewNodesByWeightedLines returns a NodesByEdge initialized with the
@@ -141,7 +155,10 @@ func NewNodesByLines(nodes map[int64]graph.Node, lines map[int64]map[int64]graph
 // is mutated after the call to NewNodes.
 func NewNodesByWeightedLines(nodes map[int64]graph.Node, lines map[int64]map[int64]graph.WeightedLine) *NodesByEdge {
 	rv := reflect.ValueOf(lines)
-	return &NodesByEdge{nodes: nodes, edges: rv, iter: rv.MapRange()}
+	ret := &NodesByEdge{nodes: nodes, edges: rv}
+	ret.iter.Reset(rv)
+	ret.keyv = reflect.ValueOf(&ret.key).Elem()
+	return ret
 }
 
 // Len returns the remaining number of nodes to be iterated over.
@@ -157,9 +174,8 @@ func (n *NodesByEdge) Next() bool {
 	ok := n.iter.Next()
 	if ok {
 		n.pos++
-		var key int64
-		reflect.ValueOf(&key).Elem().SetIterKey(n.iter)
-		n.curr = n.nodes[key]
+		n.keyv.SetIterKey(&n.iter)
+		n.curr = n.nodes[n.key]
 	}
 	return ok
 }
@@ -185,11 +201,9 @@ func (n *NodesByEdge) NodeSlice() []graph.Node {
 		return nil
 	}
 	nodes := make([]graph.Node, 0, n.Len())
-	var key int64
-	v := reflect.ValueOf(&key).Elem()
 	for n.iter.Next() {
-		v.SetIterKey(n.iter)
-		nodes = append(nodes, n.nodes[key])
+		n.keyv.SetIterKey(&n.iter)
+		nodes = append(nodes, n.nodes[n.key])
 	}
 	n.pos = n.edges.Len()
 	return nodes
